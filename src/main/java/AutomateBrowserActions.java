@@ -3,15 +3,20 @@ import org.openqa.selenium.Dimension;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.interactions.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.awt.*;
+import java.util.List;
 
 class AutomateBrowserActions {
     java.awt.Dimension screenDimensions = Toolkit.getDefaultToolkit().getScreenSize();
-    private final int windowWidth = (int) (screenDimensions.getWidth()*0.5);
-    private final int windowHeight = (int) (screenDimensions.getHeight()*0.8);
+    //4:3 window - minimal dimensions
+    private final int windowWidth = 960;
+    private final int windowHeight = 720;
     private final Cursor cursor = new Cursor();
     private Performer performer;
+    private final long timeInMs = 60000;
 
     private void customizeBrowser(){
         System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
@@ -20,68 +25,100 @@ class AutomateBrowserActions {
         resizeAndRepositionWindow(driver);
 
         System.out.println("Running: " + windowWidth + " by " + windowHeight);
-        System.out.println("Cookies: " + driver.manage().getCookies());
 
-        /*JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait waiter = new WebDriverWait(driver,5);*/
-        denyLocationAccess(driver);
+        initiateDisplayThread(driver);
         denyGoogleCookies(driver);
-        sleep(1000);
-        denyCameraAccess(driver);
-        /*while(true){
-            sleep(2000);
-            displayPositionRelativeToWindow(driver.manage().window().getPosition().getX(),driver.manage().window().getPosition().getY());
-            System.out.println(driver.getPageSource().length());
-        }*/
+        //denyYahooCookies(driver);
+        //denyCameraAccess(driver);
+    }
 
+    private void changeBrowserLanguage(WebDriver driver){
+        driver.get("chrome://settings/languages");
 
+        resetCursorPosition();
+        movePointerWithinWindowBy((int) (windowWidth*0.5),155);
+        clickPointerWithinWindow();
+        movePointerWithinWindowBy((int) (windowWidth*0.3),100);
+        clickPointerWithinWindow();
+        performer.getActionsBuilder().sendKeys(Keys.ARROW_DOWN).perform();
+        performer.getActionsBuilder().sendKeys(Keys.RETURN).perform();
+        clickPointerWithinWindow();
+        clickPointerWithinWindow();
+    }
+    private void changeDefaultSearchEngineTo(WebDriver driver,int element) {
+        driver.get("chrome://settings");
+        sleep(1);
+        resetCursorAndGainFocus();
+        for(int i = 0;i<36;i++){
+            performer.getActionsBuilder().sendKeys(Keys.ARROW_DOWN).perform();
+        }
+        movePointerWithinWindowBy((int) (windowWidth*0.23),25);
+        clickPointerWithinWindow();
+        for(int r = 0;r<4;r++){
+            performer.getActionsBuilder().sendKeys(Keys.ARROW_UP).perform();
+        }
+        for(int i = 0;i<element;i++){
+            performer.getActionsBuilder().sendKeys(Keys.ARROW_DOWN).perform();
+        }
+        performer.getActionsBuilder().sendKeys(Keys.RETURN).perform();
     }
 
     private void denyLocationAccess(WebDriver driver){
         driver.get("chrome://settings/content/location");
         sleep(1);
         resetCursorPosition();
-        movePointerWithinWindowBy((int) (windowWidth*0.5),150);
+        movePointerWithinWindowBy((int) (windowWidth*0.5),155);
         clickPointerWithinWindow();
     }
     private void denyCameraAccess(WebDriver driver){
-        resetCursorPosition();
         driver.get("chrome://settings/content/camera");
-        movePointerWithinWindowBy((int) (windowWidth*0.5),150);
+        resetCursorPosition();
+        movePointerWithinWindowBy((int) (windowWidth*0.5),155);
         clickPointerWithinWindow();
         //irregular render times of camera dropdown box
-        movePointerWithinWindowBy(0,50);
+        movePointerWithinWindowBy(0,45);
         clickPointerWithinWindow();
-
     }
     private void denyGoogleCookies(WebDriver driver){
+        WebDriverWait wait= new WebDriverWait(driver,15);
         driver.get("https://www.google.com");
-        sleep(3);
+        // //div[@class='uScs5d']//div[@data-is-touch-wrapper='true']
         WebElement customizePrivacySettingsElement = driver.findElement(By.xpath("/html/body/div[2]/div[2]/div[3]/span/div/div/div[3]/button[1]"));
-        clickOnElement(customizePrivacySettingsElement);
+        wait.until(ExpectedConditions.visibilityOf(customizePrivacySettingsElement));
+        customizePrivacySettingsElement.click();
 
-        WebElement searchPersonalization = driver.findElement(By.xpath("/html/body/c-wiz/div/div/div/div[2]/div[3]/div[2]/div/div[2]/div[1]/div/button/span"));
-        clickOnElement(searchPersonalization);
-
-        WebElement ytHistory = driver.findElement(By.xpath("/html/body/c-wiz/div/div/div/div[2]/div[4]/div[2]/div/div[2]/div[1]/div/button/span"));
-        clickOnElement(ytHistory);
-
-        WebElement adPersonalization = driver.findElement(By.xpath("/html/body/c-wiz/div/div/div/div[2]/div[5]/div[2]/div[2]/div/div[2]/div[1]/div/button/span"));
-        clickOnElement(adPersonalization);
+        List<WebElement> listOfWebElements = driver.findElements(By.xpath("//div[@class='uScs5d']//div[@data-is-touch-wrapper='true']"));
+        listOfWebElements.get(0).click();
+        listOfWebElements.get(2).click();
+        listOfWebElements.get(4).click();
 
         WebElement confirmPrivacySettingsButton = driver.findElement(By.xpath("/html/body/c-wiz/div/div/div/div[2]/form/div/button/span"));
-        clickOnElement(confirmPrivacySettingsButton);
+        confirmPrivacySettingsButton.click();
     }
+    private void denyYahooCookies(WebDriver driver){
+        driver.get("https://www.yahoo.com");
+        WebElement scrollDownButton = driver.findElement(By.id("scroll-down-btn"));
+        clickOnElement(scrollDownButton);
 
+        WebElement manageSettingsButton = driver.findElement(By.cssSelector("btn.secondary.manage-settings"));
+        clickOnElement(manageSettingsButton);
+
+    }
+    private void resetCursorAndGainFocus(){
+        resetCursorPosition();
+        //settings panel is 55 pixels high, gain focus on newly loaded page
+        movePointerWithinWindowBy((int) (windowWidth*0.5),60);
+        clickPointerWithinWindow();
+    }
     private void resetCursorPosition(){
         movePointerWithinWindowBy(-cursor.getCursorXPosition(), -cursor.getCursorYPosition());
     }
     /** mouse location according to window */
-    private void displayPositionRelativeToWindow(int windowXLocation, int windowYLocation){
+    private void displayPositionRelativeToWindow(WebDriver driver){
         int x = (int) MouseInfo.getPointerInfo().getLocation().getX();
         int y = (int) MouseInfo.getPointerInfo().getLocation().getY();
-        int xPosition = x-windowXLocation;
-        int yPosition = y-128-windowYLocation;
+        int xPosition = x-driver.manage().window().getPosition().getX()-8;
+        int yPosition = y-128-driver.manage().window().getPosition().getY();
         System.out.println(xPosition + " " + yPosition);
     }
     private void displayCursorPosition(){
@@ -89,13 +126,13 @@ class AutomateBrowserActions {
     }
     private void resizeAndRepositionWindow(WebDriver driver){
         driver.manage().window().setSize(new Dimension(windowWidth, windowHeight));
-        driver.manage().window().setPosition(new Point(windowWidth, 0));
+        driver.manage().window().setPosition(new Point(screenDimensions.width-windowWidth, 0));
     }
     private void movePointerWithinWindowBy(int x,int y){
         //handle target out of bounds exception
         int nextX = cursor.getCursorXPosition()+x;
         int nextY = cursor.getCursorYPosition()+y;
-        if(nextX<0 || nextX>windowWidth || nextY<0 || nextY>windowHeight) {
+        if(nextX<0 || nextX>windowWidth-16|| nextY<0 || nextY>windowHeight-136) {
             System.out.println("Values exceeding window dimensions");
             return;
         }else{
@@ -107,9 +144,20 @@ class AutomateBrowserActions {
     private void clickPointerWithinWindow(){
         performer.getActionsBuilder().click().perform();
     }
+    private void initiateDisplayThread(WebDriver driver) {
+        long start = System.currentTimeMillis();
+        Thread displayThread = new Thread(new Runnable() {
+            public void run() {
+                while(start+timeInMs>System.currentTimeMillis()){
+                    sleep(500);
+                    displayPositionRelativeToWindow(driver);
+                }
+            }
+        });
+        displayThread.start();
+    }
     private void clickOnElement(WebElement webElement){
         webElement.click();
-        sleep(1);
     }
     private void sleep(long time){
         try {
