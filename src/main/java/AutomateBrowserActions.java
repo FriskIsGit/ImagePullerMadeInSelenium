@@ -1,120 +1,123 @@
 import org.openqa.selenium.*;
-import org.openqa.selenium.Dimension;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.interactions.*;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.awt.*;
+import java.awt.Toolkit;
+import java.awt.MouseInfo;
 import java.util.List;
 
 class AutomateBrowserActions {
-    java.awt.Dimension screenDimensions = Toolkit.getDefaultToolkit().getScreenSize();
+    private static final java.awt.Dimension screenDimensions = Toolkit.getDefaultToolkit().getScreenSize();
     //4:3 window - minimal dimensions
-    private final int windowWidth = 960;
-    private final int windowHeight = 720;
-    private final Cursor cursor = new Cursor();
-    private Performer performer;
-    private final long timeInMs = 60000;
-
-    private void customizeBrowser(){
-        System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
-        WebDriver driver = new ChromeDriver();
-        performer = new Performer(driver);
-        resizeAndRepositionWindow(driver);
-
-        System.out.println("Running: " + windowWidth + " by " + windowHeight);
-
-        initiateDisplayThread(driver);
-        denyGoogleCookies(driver);
-        //denyYahooCookies(driver);
-        //denyCameraAccess(driver);
+    private static final int WINDOW_WIDTH = 960;
+    private static final int WINDOW_HEIGHT = 720;
+    private final WebDriver driver;
+    private final Actions actions;
+    private final CursorPosition cursor;
+    private AutomateBrowserActions(){
+        cursor = new CursorPosition();
+        driver = new ChromeDriver();
+        actions = new Actions(driver);
     }
 
-    private void changeBrowserLanguage(WebDriver driver){
+    private void changeBrowserLanguage(){
+        resizeAndRepositionWindow();
         driver.get("chrome://settings/languages");
-
         resetCursorPosition();
-        movePointerWithinWindowBy((int) (windowWidth*0.5),155);
-        clickPointerWithinWindow();
-        movePointerWithinWindowBy((int) (windowWidth*0.3),100);
-        clickPointerWithinWindow();
-        performer.getActionsBuilder().sendKeys(Keys.ARROW_DOWN).perform();
-        performer.getActionsBuilder().sendKeys(Keys.RETURN).perform();
-        clickPointerWithinWindow();
-        clickPointerWithinWindow();
+        moveBy((int) (WINDOW_WIDTH *0.5),155);
+        click();
+        moveBy((int) (WINDOW_WIDTH *0.3),100);
+        click();
+        actions.sendKeys(Keys.ARROW_DOWN).perform();
+        actions.sendKeys(Keys.RETURN).perform();
+        click();
+        click();
     }
-    private void changeDefaultSearchEngineTo(WebDriver driver,int element) {
+    private void changeDefaultSearchEngineTo(int element) {
+        final int NUMBER_OF_SEARCH_ENGINES = 4;
+        resizeAndRepositionWindow();
         driver.get("chrome://settings");
-        sleep(1);
         resetCursorAndGainFocus();
         for(int i = 0;i<36;i++){
-            performer.getActionsBuilder().sendKeys(Keys.ARROW_DOWN).perform();
+            actions.sendKeys(Keys.ARROW_DOWN).perform();
         }
-        movePointerWithinWindowBy((int) (windowWidth*0.23),25);
-        clickPointerWithinWindow();
-        for(int r = 0;r<4;r++){
-            performer.getActionsBuilder().sendKeys(Keys.ARROW_UP).perform();
+        moveBy((int) (WINDOW_WIDTH *0.23),25);
+        click();
+        for(int r = 0;r<NUMBER_OF_SEARCH_ENGINES;r++){
+            actions.sendKeys(Keys.ARROW_UP).perform();
         }
         for(int i = 0;i<element;i++){
-            performer.getActionsBuilder().sendKeys(Keys.ARROW_DOWN).perform();
+            actions.sendKeys(Keys.ARROW_DOWN).perform();
         }
-        performer.getActionsBuilder().sendKeys(Keys.RETURN).perform();
+        actions.sendKeys(Keys.RETURN).perform();
     }
 
-    private void denyLocationAccess(WebDriver driver){
+    private void denyLocationAccess(){
+        resizeAndRepositionWindow();
         driver.get("chrome://settings/content/location");
-        sleep(1);
         resetCursorPosition();
-        movePointerWithinWindowBy((int) (windowWidth*0.5),155);
-        clickPointerWithinWindow();
+        moveBy((int) (WINDOW_WIDTH *0.5),155);
+        click();
     }
-    private void denyCameraAccess(WebDriver driver){
+    private void denyCameraAccess(){
+        resizeAndRepositionWindow();
         driver.get("chrome://settings/content/camera");
         resetCursorPosition();
-        movePointerWithinWindowBy((int) (windowWidth*0.5),155);
-        clickPointerWithinWindow();
+        moveBy((int) (WINDOW_WIDTH *0.5),155);
+        click();
         //irregular render times of camera dropdown box
-        movePointerWithinWindowBy(0,45);
-        clickPointerWithinWindow();
+        moveBy(0,45);
+        click();
     }
-    private void denyGoogleCookies(WebDriver driver){
-        WebDriverWait wait= new WebDriverWait(driver,15);
+    private void denyGoogleCookies(){
         driver.get("https://www.google.com");
-        // //div[@class='uScs5d']//div[@data-is-touch-wrapper='true']
+        WebDriverWait waiter = new WebDriverWait(driver,15);
         WebElement customizePrivacySettingsElement = driver.findElement(By.xpath("/html/body/div[2]/div[2]/div[3]/span/div/div/div[3]/button[1]"));
-        wait.until(ExpectedConditions.visibilityOf(customizePrivacySettingsElement));
+        waiter.until(ExpectedConditions.visibilityOf(customizePrivacySettingsElement));
         customizePrivacySettingsElement.click();
 
-        List<WebElement> listOfWebElements = driver.findElements(By.xpath("//div[@class='uScs5d']//div[@data-is-touch-wrapper='true']"));
-        listOfWebElements.get(0).click();
-        listOfWebElements.get(2).click();
-        listOfWebElements.get(4).click();
+        List<WebElement> toggleButtonsList = driver.findElements(By.xpath("//div[@class='uScs5d']//div[@data-is-touch-wrapper='true']"));
+        //every second button is an off button
+        toggleButtonsList.get(0).click();
+        toggleButtonsList.get(2).click();
+        toggleButtonsList.get(4).click();
 
         WebElement confirmPrivacySettingsButton = driver.findElement(By.xpath("/html/body/c-wiz/div/div/div/div[2]/form/div/button/span"));
         confirmPrivacySettingsButton.click();
     }
-    private void denyYahooCookies(WebDriver driver){
+    private void denyYahooCookies(){
         driver.get("https://www.yahoo.com");
-        WebElement scrollDownButton = driver.findElement(By.id("scroll-down-btn"));
-        clickOnElement(scrollDownButton);
+        WebDriverWait waiter = new WebDriverWait(driver,15);
 
-        WebElement manageSettingsButton = driver.findElement(By.cssSelector("btn.secondary.manage-settings"));
-        clickOnElement(manageSettingsButton);
+        WebElement scrollDownButton = driver.findElement(By.id("scroll-down-btn"));
+        if(scrollDownButton.isDisplayed()) scrollDownButton.click();
+
+        List<WebElement> listOfClickables = driver.findElements(By.tagName("a"));
+        listOfClickables.get(listOfClickables.size()-2).click();
+
+        WebElement legitimateInterest = driver.findElement(By.id("select-legit-all-purpose"));
+        waiter.until(ExpectedConditions.visibilityOf(legitimateInterest));
+        legitimateInterest.click();
+
+        WebElement saveAndContinue = driver.findElement(By.name("agree"));
+        waiter.until(ExpectedConditions.visibilityOf(saveAndContinue));
+        saveAndContinue.click();
 
     }
     private void resetCursorAndGainFocus(){
         resetCursorPosition();
         //settings panel is 55 pixels high, gain focus on newly loaded page
-        movePointerWithinWindowBy((int) (windowWidth*0.5),60);
-        clickPointerWithinWindow();
+        moveBy((int) (WINDOW_WIDTH *0.5),60);
+        click();
     }
     private void resetCursorPosition(){
-        movePointerWithinWindowBy(-cursor.getCursorXPosition(), -cursor.getCursorYPosition());
+        moveBy(-cursor.getX(), -cursor.getY());
     }
     /** mouse location according to window */
-    private void displayPositionRelativeToWindow(WebDriver driver){
+    private void displayPositionRelativeToWindow(){
         int x = (int) MouseInfo.getPointerInfo().getLocation().getX();
         int y = (int) MouseInfo.getPointerInfo().getLocation().getY();
         int xPosition = x-driver.manage().window().getPosition().getX()-8;
@@ -122,79 +125,74 @@ class AutomateBrowserActions {
         System.out.println(xPosition + " " + yPosition);
     }
     private void displayCursorPosition(){
-        System.out.println(cursor.getCursorXPosition() + " " + cursor.getCursorYPosition());
+        System.out.println(cursor.getX() + " " + cursor.getY());
     }
-    private void resizeAndRepositionWindow(WebDriver driver){
-        driver.manage().window().setSize(new Dimension(windowWidth, windowHeight));
-        driver.manage().window().setPosition(new Point(screenDimensions.width-windowWidth, 0));
+    private void resizeAndRepositionWindow(){
+        driver.manage().window().setSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
+        driver.manage().window().setPosition(new Point(screenDimensions.width- WINDOW_WIDTH, 0));
     }
-    private void movePointerWithinWindowBy(int x,int y){
+    private void moveBy(int x, int y){
+        int nextX = cursor.getX()+x;
+        int nextY = cursor.getY()+y;
         //handle target out of bounds exception
-        int nextX = cursor.getCursorXPosition()+x;
-        int nextY = cursor.getCursorYPosition()+y;
-        if(nextX<0 || nextX>windowWidth-16|| nextY<0 || nextY>windowHeight-136) {
+        if(nextX<0 || nextX> WINDOW_WIDTH -16|| nextY<0 || nextY> WINDOW_HEIGHT -136) {
             System.out.println("Values exceeding window dimensions");
             return;
         }else{
-            cursor.setCursorXPosition(nextX);
-            cursor.setCursorYPosition(nextY);
+            cursor.setX(nextX);
+            cursor.setY(nextY);
         }
-        performer.getActionsBuilder().moveByOffset(x,y).build().perform();
+        actions.moveByOffset(x,y).build().perform();
     }
-    private void clickPointerWithinWindow(){
-        performer.getActionsBuilder().click().perform();
+    private void click(){
+        actions.click().perform();
     }
-    private void initiateDisplayThread(WebDriver driver) {
-        long start = System.currentTimeMillis();
+    private void logCursorPositionFor(long seconds){
+        long time = System.currentTimeMillis()+seconds*1000;
         Thread displayThread = new Thread(new Runnable() {
-            public void run() {
-                while(start+timeInMs>System.currentTimeMillis()){
-                    sleep(500);
-                    displayPositionRelativeToWindow(driver);
+            public void run()  {
+                while(time>System.currentTimeMillis()){
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    displayPositionRelativeToWindow();
                 }
             }
         });
         displayThread.start();
     }
-    private void clickOnElement(WebElement webElement){
-        webElement.click();
-    }
-    private void sleep(long time){
-        try {
-            Thread.sleep(time);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 
     public static void main(String[] args) {
-        new AutomateBrowserActions().customizeBrowser();
-    }
-}
-class Cursor{
-    private int cursorXPosition = 0;
-    private int cursorYPosition = 0;
+        System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
+        AutomateBrowserActions browserActions = new AutomateBrowserActions();
 
-    public void setCursorXPosition(int cursorXPosition) {
-        this.cursorXPosition = cursorXPosition;
-    }
-    public void setCursorYPosition(int cursorYPosition) {
-        this.cursorYPosition = cursorYPosition;
-    }
+        browserActions.logCursorPositionFor(120);
+        browserActions.changeBrowserLanguage();
+        browserActions.denyLocationAccess();
+        browserActions.denyCameraAccess();
+        browserActions.denyGoogleCookies();
+        browserActions.changeDefaultSearchEngineTo(3);
+        browserActions.denyYahooCookies();
 
-    public int getCursorXPosition() {
-        return cursorXPosition;
-    }
-    public int getCursorYPosition() {
-        return cursorYPosition;
     }
 }
-class Performer {
-    private final Actions actionBuilder;
-    protected Performer(WebDriver driver) {
-        this.actionBuilder = new Actions(driver);
+class CursorPosition {
+    private int x = 0;
+    private int y = 0;
+
+    public void setX(int x) {
+        this.x = x;
     }
-    public Actions getActionsBuilder(){
-        return actionBuilder;
+    public void setY(int y) {
+        this.y = y;
+    }
+    public int getX() {
+        return x;
+    }
+    public int getY() {
+        return y;
     }
 }
+
