@@ -1,13 +1,16 @@
 import org.openqa.selenium.*;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+
 import java.awt.Toolkit;
 import java.awt.MouseInfo;
 import java.util.List;
+
 
 class AutomateBrowserActions {
     private static final java.awt.Dimension screenDimensions = Toolkit.getDefaultToolkit().getScreenSize();
@@ -17,42 +20,11 @@ class AutomateBrowserActions {
     private final WebDriver driver;
     private final Actions actions;
     private final CursorPosition cursor;
-    private AutomateBrowserActions(){
-        cursor = new CursorPosition();
-        driver = new ChromeDriver();
-        actions = new Actions(driver);
-    }
 
-    private void changeBrowserLanguage(){
-        resizeAndRepositionWindow();
-        driver.get("chrome://settings/languages");
-        resetCursorPosition();
-        moveBy((int) (WINDOW_WIDTH *0.5),155);
-        click();
-        moveBy((int) (WINDOW_WIDTH *0.3),100);
-        click();
-        actions.sendKeys(Keys.ARROW_DOWN).perform();
-        actions.sendKeys(Keys.RETURN).perform();
-        click();
-        click();
-    }
-    private void changeDefaultSearchEngineTo(int element) {
-        final int NUMBER_OF_SEARCH_ENGINES = 4;
-        resizeAndRepositionWindow();
-        driver.get("chrome://settings");
-        resetCursorAndGainFocus();
-        for(int i = 0;i<36;i++){
-            actions.sendKeys(Keys.ARROW_DOWN).perform();
-        }
-        moveBy((int) (WINDOW_WIDTH *0.23),25);
-        click();
-        for(int r = 0;r<NUMBER_OF_SEARCH_ENGINES;r++){
-            actions.sendKeys(Keys.ARROW_UP).perform();
-        }
-        for(int i = 0;i<element;i++){
-            actions.sendKeys(Keys.ARROW_DOWN).perform();
-        }
-        actions.sendKeys(Keys.RETURN).perform();
+    private AutomateBrowserActions(ChromeOptions launchSettings){
+        cursor = new CursorPosition();
+        driver = new ChromeDriver(launchSettings);
+        actions = new Actions(driver);
     }
 
     private void denyLocationAccess(){
@@ -107,12 +79,6 @@ class AutomateBrowserActions {
         saveAndContinue.click();
 
     }
-    private void resetCursorAndGainFocus(){
-        resetCursorPosition();
-        //settings panel is 55 pixels high, gain focus on newly loaded page
-        moveBy((int) (WINDOW_WIDTH *0.5),60);
-        click();
-    }
     private void resetCursorPosition(){
         moveBy(-cursor.getX(), -cursor.getY());
     }
@@ -135,8 +101,8 @@ class AutomateBrowserActions {
         int nextX = cursor.getX()+x;
         int nextY = cursor.getY()+y;
         //handle target out of bounds exception
-        if(nextX<0 || nextX> WINDOW_WIDTH -16|| nextY<0 || nextY> WINDOW_HEIGHT -136) {
-            System.out.println("Values exceeding window dimensions");
+        if(nextX<0 || nextX> WINDOW_WIDTH-16|| nextY<0 || nextY> WINDOW_HEIGHT-136) {
+            System.err.println("Values exceeding window dimensions");
             return;
         }else{
             cursor.setX(nextX);
@@ -164,16 +130,18 @@ class AutomateBrowserActions {
         displayThread.start();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args){
         System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
-        AutomateBrowserActions browserActions = new AutomateBrowserActions();
+
+        ChromeOptions chromeLaunchSettings = new ChromeOptions();
+        chromeLaunchSettings.addArguments("--lang=EN");
+
+        AutomateBrowserActions browserActions = new AutomateBrowserActions(chromeLaunchSettings);
 
         browserActions.logCursorPositionFor(120);
-        browserActions.changeBrowserLanguage();
         browserActions.denyLocationAccess();
         browserActions.denyCameraAccess();
         browserActions.denyGoogleCookies();
-        browserActions.changeDefaultSearchEngineTo(3);
         browserActions.denyYahooCookies();
 
     }
